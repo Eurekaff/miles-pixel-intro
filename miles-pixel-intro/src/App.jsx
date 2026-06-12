@@ -16,7 +16,7 @@ const PLAYER = {
 const publicAsset = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
 const versionedPublicAsset = (path, version) => `${publicAsset(path)}?v=${version}`
 
-const WALK_SHEET_SRC = versionedPublicAsset('/character/miles-walk-sheet.png', '20260612-walk-sheet-2')
+const WALK_SHEET_SRC = versionedPublicAsset('/character/miles-walk-sheet.png', '20260612-walk-sheet-768')
 const USE_WALK_SHEET_CHARACTER = true
 const CHARACTER_SHEET_SRC = versionedPublicAsset('/character/miles-reference.png', '20260612-reference-2')
 const PHOTO_ASSETS = {
