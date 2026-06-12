@@ -14,10 +14,11 @@ const PLAYER = {
 }
 
 const publicAsset = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
+const versionedPublicAsset = (path, version) => `${publicAsset(path)}?v=${version}`
 
-const WALK_SHEET_SRC = publicAsset('/character/miles-walk-sheet.png')
+const WALK_SHEET_SRC = versionedPublicAsset('/character/miles-walk-sheet.png', '20260612-walk-sheet-2')
 const USE_WALK_SHEET_CHARACTER = true
-const CHARACTER_SHEET_SRC = publicAsset('/character/miles-reference.png')
+const CHARACTER_SHEET_SRC = versionedPublicAsset('/character/miles-reference.png', '20260612-reference-2')
 const CHARACTER_SPRITE_BOXES = {
   front: { x: 60, y: 220, width: 510, height: 1655 },
   back: { x: 585, y: 220, width: 475, height: 1655 },
@@ -35,6 +36,7 @@ const characterSprites = {
 const walkSheetSprites = {
   loading: false,
   ready: false,
+  failed: false,
   url: '',
   frames: null,
 }
@@ -470,9 +472,10 @@ function stabilizeWalkFrames(frames, padding = 12) {
 }
 
 function ensureWalkSheetSprites() {
-  if (walkSheetSprites.ready || walkSheetSprites.loading || typeof Image === 'undefined') return
+  if (walkSheetSprites.ready || walkSheetSprites.loading || walkSheetSprites.failed || typeof Image === 'undefined') return
 
   walkSheetSprites.loading = true
+  walkSheetSprites.failed = false
   walkSheetSprites.url = WALK_SHEET_SRC
 
   const image = new Image()
@@ -489,6 +492,7 @@ function ensureWalkSheetSprites() {
   }
   image.onerror = () => {
     walkSheetSprites.loading = false
+    walkSheetSprites.failed = true
   }
   image.src = WALK_SHEET_SRC
 }
@@ -728,7 +732,10 @@ function drawSideMiles(ctx, originX, originY, scale, frame, facingLeft) {
 }
 
 function drawVoxelMiles(ctx, x, y, direction, frame, moving) {
-  if (USE_WALK_SHEET_CHARACTER && drawWalkSheetMiles(ctx, x, y, direction, frame, moving)) return
+  if (USE_WALK_SHEET_CHARACTER) {
+    if (drawWalkSheetMiles(ctx, x, y, direction, frame, moving)) return
+    if (walkSheetSprites.loading && !walkSheetSprites.failed) return
+  }
   if (USE_REFERENCE_CHARACTER && drawReferenceMiles(ctx, x, y, direction, frame, moving)) return
 
   const scale = 1.08
