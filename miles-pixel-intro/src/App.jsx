@@ -15,6 +15,30 @@ const PLAYER = {
 
 const publicAsset = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
 
+const WALK_SHEET_SRC = publicAsset('/character/miles-walk-sheet.png')
+const USE_WALK_SHEET_CHARACTER = true
+const CHARACTER_SHEET_SRC = publicAsset('/character/miles-reference.png')
+const CHARACTER_SPRITE_BOXES = {
+  front: { x: 60, y: 220, width: 510, height: 1655 },
+  back: { x: 585, y: 220, width: 475, height: 1655 },
+  side: { x: 1080, y: 220, width: 425, height: 1655 },
+}
+const USE_REFERENCE_CHARACTER = false
+
+const characterSprites = {
+  loading: false,
+  ready: false,
+  url: '',
+  sprites: null,
+}
+
+const walkSheetSprites = {
+  loading: false,
+  ready: false,
+  url: '',
+  frames: null,
+}
+
 const START_POSITION = { x: 420, y: 560 }
 
 const collectibles = [
@@ -27,7 +51,12 @@ const collectibles = [
     y: 555,
     kind: 'id',
     unlocks: ['basic'],
-    body: '解锁基础档案：方明正 / Miles，22 岁，厦门大学软件工程。',
+    body: `获得道具：学生证。
+
+基础档案已解锁：方明正 / Miles，22 岁，来自厦门大学。
+
+目前身份正在切换中：从校园玩家切到职场新人。
+新手教程还在加载，不过会认真跟上节奏。`,
   },
   {
     id: 'school',
@@ -38,7 +67,12 @@ const collectibles = [
     y: 555,
     kind: 'badge',
     unlocks: ['campus'],
-    body: '解锁校园副本：来自厦门大学软件工程，刚完成校园副本。',
+    body: `获得道具：厦大校徽。
+
+这是我上一张地图的出生点。
+在厦大副本里，我刷过代码、项目、协作和 debug，也慢慢习惯了把一个想法拆成能落地的小任务。
+
+现在带着这些经验值，准备进入更大的地图继续升级。`,
   },
   {
     id: 'hobby-game',
@@ -49,7 +83,12 @@ const collectibles = [
     y: 450,
     kind: 'gamepad',
     unlocks: ['game'],
-    body: '解锁兴趣：喜欢游戏，也喜欢研究规则、系统和反馈。',
+    body: `获得道具：游戏手柄。
+
+兴趣模块已开启：我平时喜欢打王者荣耀、第五人格，也玩崩坏：星穹铁道。
+
+玩游戏的时候，我有时会研究机制和阵容，有时也只是想放松一下。
+如果之后有同样爱玩的同学，欢迎一起开黑。`,
   },
   {
     id: 'movie-ticket',
@@ -60,7 +99,12 @@ const collectibles = [
     y: 450,
     kind: 'ticket',
     unlocks: ['movie'],
-    body: '解锁兴趣：喜欢电影，负责打开想象力和故事感。',
+    body: `获得道具：电影票根。
+
+电影也是我的回血道具之一。
+我看的类型比较杂，主要看故事、氛围和角色有没有打动人。
+
+如果之后大家有想看的电影，也欢迎约我一起去。`,
   },
   {
     id: 'sport-shoes',
@@ -71,7 +115,12 @@ const collectibles = [
     y: 450,
     kind: 'shoe',
     unlocks: ['sport'],
-    body: '解锁兴趣：喜欢运动，给生活充电，也让状态保持在线。',
+    body: `获得道具：运动鞋。
+
+运动对我来说是比较稳定的充电方式。
+跑步、球类、散步、简单活动一下都可以。
+
+有时候状态卡住了，出去动一动，回来就像重新读档，脑子会清爽很多。`,
   },
   {
     id: 'personality',
@@ -82,7 +131,13 @@ const collectibles = [
     y: 960,
     kind: 'compass',
     unlocks: ['curious'],
-    body: '解锁性格：好奇，喜欢探索没走过的路线。',
+    body: `获得道具：探索指南针。
+
+性格属性已解锁：好奇。
+
+我对新东西通常会比较感兴趣，看到没接触过的工具、业务或者玩法，会想先靠近看看。
+
+新地图里应该还有很多未知区域，希望之后能多向大家学习。`,
   },
   {
     id: 'helpful-drink',
@@ -93,7 +148,13 @@ const collectibles = [
     y: 960,
     kind: 'drink',
     unlocks: ['helpful'],
-    body: '解锁性格：一点点外向，也愿意热心帮忙。',
+    body: `获得道具：热心能量饮料。
+
+性格属性继续解锁：ENFP内向型社牛，熟起来会更好聊。
+
+如果队友需要帮忙，我非常愿意搭把手。
+
+希望之后能和大家顺利组队。`,
   },
   {
     id: 'hello',
@@ -104,7 +165,14 @@ const collectibles = [
     y: 1260,
     kind: 'letter',
     unlocks: ['hello'],
-    body: '解锁新阶段：从校园副本进入腾讯新地图，希望认识大家。',
+    body: `获得道具：组队邀请函。
+
+新阶段已解锁：腾讯新地图。
+
+接下来我会从新人模式开始，先熟悉环境、熟悉业务、熟悉大家的节奏。
+希望能尽快加入队伍，也期待之后和大家一起学习、协作、打出一些漂亮配合。
+
+如果路上遇到我迷路了，也欢迎顺手指个方向。`,
   },
   {
     id: 'photo-library',
@@ -116,7 +184,14 @@ const collectibles = [
     kind: 'photo',
     photo: publicAsset('/photos/library.jpg'),
     unlocks: ['photo-library'],
-    body: '解锁相册：书房照片。正式、沉稳、带一点复古电影感。',
+    body: `获得道具：书房照片。
+
+相册图鉴 +1。
+
+这一张看起来比较正式，像是个人面板里的默认头像。
+适合用来假装沉稳，也适合在需要认真一点的场合出现。
+
+实际本人可能更随和一点。`,
   },
   {
     id: 'photo-casino',
@@ -128,7 +203,14 @@ const collectibles = [
     kind: 'photo',
     photo: publicAsset('/photos/casino.jpg'),
     unlocks: ['photo-casino'],
-    body: '解锁相册：电影感照片。冷色灯光和黑西装，很适合做隐藏彩蛋。',
+    body: `获得道具：电影感照片。
+
+相册图鉴 +1。
+
+冷色灯光、黑色穿搭，看起来像是误入了某个电影支线。
+这张的氛围感比较足，但本人平时没有这么神秘。
+
+大多数时候，我只是一个普通的新手玩家。`,
   },
   {
     id: 'photo-winter',
@@ -140,7 +222,14 @@ const collectibles = [
     kind: 'photo',
     photo: publicAsset('/photos/winter.jpg'),
     unlocks: ['photo-winter'],
-    body: '解锁相册：冬日近照。更贴近日常形象，可以在个人面板里查看。',
+    body: `获得道具：冬日近照。
+
+相册图鉴 +1。
+
+这一张更接近日常状态。
+没有特殊剧情，也没有隐藏 boss，只是一个正在认真适应新地图的 Miles。
+
+如果在群里或者线下见到我，应该会比照片里更好认一点。`,
   },
 ]
 
@@ -159,36 +248,36 @@ const profileSections = [
     id: 'basic',
     title: '基础档案',
     required: ['name'],
-    locked: '收集学生证后解锁姓名、年龄和专业。',
-    lines: ['方明正 / Miles', '22 岁', '厦门大学 软件工程'],
+    locked: '收集学生证后，可以解锁我的基础信息。',
+    lines: ['姓名：方明正 / Miles', '年龄：22 岁', '专业：厦门大学 软件工程', '当前身份：刚进入腾讯新地图的新玩家'],
   },
   {
     id: 'campus',
     title: '校园副本',
     required: ['school'],
-    locked: '收集厦大校徽后解锁校园来处。',
-    lines: ['来自厦门大学', '刚完成校园副本，准备进入腾讯新地图'],
+    locked: '收集厦大校徽后，可以查看我的上一张地图。',
+    lines: ['来自厦门大学', '软件工程专业出身', '之前主要在代码、项目、协作和 debug 里积累经验', '现在准备把校园副本里的经验带到新的真实地图里'],
   },
   {
     id: 'personality',
     title: '性格属性',
     required: ['personality', 'helpful-drink'],
-    locked: '收集探索指南针和热心能量饮料后解锁性格。',
-    lines: ['一点点外向', '热心', '好奇', '喜欢探索'],
+    locked: '收集探索指南针和热心能量饮料后，可以解锁我的性格属性。',
+    lines: ['好相处：ENFP内向型社牛，也愿意和大家多交流', '热心：队友需要帮忙时，能搭把手就搭把手', '好奇：喜欢了解新工具、新业务和新想法'],
   },
   {
     id: 'hobbies',
     title: '兴趣爱好',
     required: ['hobby-game', 'movie-ticket', 'sport-shoes'],
-    locked: '收集游戏手柄、电影票根和运动鞋后解锁兴趣。',
-    lines: ['游戏', '电影', '运动'],
+    locked: '收集游戏手柄、电影票根和运动鞋后，可以解锁我的兴趣爱好。',
+    lines: ['游戏：王者荣耀、第五人格、崩坏：星穹铁道都玩，欢迎一起开黑', '电影：类型看得比较杂，主要看故事和氛围，欢迎约电影', '运动：各种运动都可以，主要是给自己充电、保持状态在线'],
   },
   {
     id: 'new-stage',
     title: '腾讯新阶段',
     required: ['hello'],
-    locked: '收集组队邀请函后解锁新阶段介绍。',
-    lines: ['从校园副本进入腾讯新地图', '希望认识大家，也期待一起打配合'],
+    locked: '收集组队邀请函后，可以解锁我的新阶段介绍。',
+    lines: ['从校园副本进入腾讯新地图', '目前处于新人加载中', '希望尽快熟悉团队节奏，也认识更多有趣的队友', '期待之后和大家一起学习、协作、打配合'],
   },
 ]
 
@@ -223,85 +312,375 @@ function drawRect(ctx, originX, originY, scale, x, y, width, height, color) {
   ctx.fillRect(originX + x * scale, originY + y * scale, width * scale, height * scale)
 }
 
+function isReferenceBackground(data, index) {
+  const red = data[index]
+  const green = data[index + 1]
+  const blue = data[index + 2]
+  const alpha = data[index + 3]
+  const max = Math.max(red, green, blue)
+  const min = Math.min(red, green, blue)
+  return alpha === 0 || (max >= 214 && max - min <= 18)
+}
+
+function removeConnectedBackground(canvas) {
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  const image = context.getImageData(0, 0, canvas.width, canvas.height)
+  const { data, width, height } = image
+  const seen = new Uint8Array(width * height)
+  const queue = []
+
+  const enqueue = (x, y) => {
+    const pixel = y * width + x
+    const dataIndex = pixel * 4
+    if (!seen[pixel] && isReferenceBackground(data, dataIndex)) {
+      seen[pixel] = 1
+      queue.push([x, y])
+    }
+  }
+
+  for (let x = 0; x < width; x += 1) {
+    enqueue(x, 0)
+    enqueue(x, height - 1)
+  }
+
+  for (let y = 0; y < height; y += 1) {
+    enqueue(0, y)
+    enqueue(width - 1, y)
+  }
+
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const [x, y] = queue[cursor]
+    data[(y * width + x) * 4 + 3] = 0
+    if (x > 0) enqueue(x - 1, y)
+    if (x < width - 1) enqueue(x + 1, y)
+    if (y > 0) enqueue(x, y - 1)
+    if (y < height - 1) enqueue(x, y + 1)
+  }
+
+  context.putImageData(image, 0, 0)
+}
+
+function createCharacterSprite(image, box) {
+  const canvas = document.createElement('canvas')
+  canvas.width = box.width
+  canvas.height = box.height
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  context.imageSmoothingEnabled = false
+  context.drawImage(image, box.x, box.y, box.width, box.height, 0, 0, box.width, box.height)
+  removeConnectedBackground(canvas)
+  return canvas
+}
+
+function createWalkFrame(image, row, column) {
+  const cellWidth = image.naturalWidth / 4
+  const cellHeight = image.naturalHeight / 4
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.ceil(cellWidth)
+  canvas.height = Math.ceil(cellHeight)
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  context.imageSmoothingEnabled = false
+  context.drawImage(
+    image,
+    column * cellWidth,
+    row * cellHeight,
+    cellWidth,
+    cellHeight,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  )
+  removeConnectedBackground(canvas)
+  return canvas
+}
+
+function getAlphaBounds(canvas) {
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  const image = context.getImageData(0, 0, canvas.width, canvas.height)
+  const { data, width, height } = image
+  let minX = width
+  let minY = height
+  let maxX = -1
+  let maxY = -1
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (data[(y * width + x) * 4 + 3] > 12) {
+        minX = Math.min(minX, x)
+        minY = Math.min(minY, y)
+        maxX = Math.max(maxX, x)
+        maxY = Math.max(maxY, y)
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) return null
+  return { minX, minY, maxX, maxY }
+}
+
+function getUpperBodyAnchorX(canvas, bounds) {
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  const image = context.getImageData(0, 0, canvas.width, canvas.height)
+  const { data, width } = image
+  const upperLimit = Math.floor(bounds.minY + (bounds.maxY - bounds.minY) * 0.48)
+  let totalX = 0
+  let count = 0
+
+  for (let y = bounds.minY; y <= upperLimit; y += 1) {
+    for (let x = bounds.minX; x <= bounds.maxX; x += 1) {
+      const alpha = data[(y * width + x) * 4 + 3]
+      if (alpha > 12) {
+        totalX += x
+        count += 1
+      }
+    }
+  }
+
+  return count ? totalX / count : (bounds.minX + bounds.maxX) / 2
+}
+
+function stabilizeWalkFrames(frames, padding = 12) {
+  const frameData = frames
+    .map((frame) => {
+      const bounds = getAlphaBounds(frame)
+      return bounds ? { frame, bounds, anchorX: getUpperBodyAnchorX(frame, bounds) } : null
+    })
+    .filter(Boolean)
+
+  if (!frameData.length) return frames
+
+  const maxBodyWidth = Math.max(...frameData.map(({ bounds }) => bounds.maxX - bounds.minX + 1))
+  const maxBodyHeight = Math.max(...frameData.map(({ bounds }) => bounds.maxY - bounds.minY + 1))
+  const width = maxBodyWidth + padding * 2
+  const height = maxBodyHeight + padding * 2
+  const targetAnchorX = Math.round(width / 2)
+  const targetBottom = height - padding
+
+  return frameData.map(({ frame, bounds, anchorX }) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    context.imageSmoothingEnabled = false
+    const offsetX = Math.round(targetAnchorX - anchorX)
+    const offsetY = Math.round(targetBottom - bounds.maxY)
+    context.drawImage(frame, offsetX, offsetY)
+    return canvas
+  })
+}
+
+function ensureWalkSheetSprites() {
+  if (walkSheetSprites.ready || walkSheetSprites.loading || typeof Image === 'undefined') return
+
+  walkSheetSprites.loading = true
+  walkSheetSprites.url = WALK_SHEET_SRC
+
+  const image = new Image()
+  image.onload = () => {
+    const directions = ['down', 'up', 'left', 'right']
+    walkSheetSprites.frames = directions.reduce((frames, direction, row) => {
+      frames[direction] = stabilizeWalkFrames(
+        Array.from({ length: 4 }, (_, column) => createWalkFrame(image, row, column)),
+      )
+      return frames
+    }, {})
+    walkSheetSprites.ready = true
+    walkSheetSprites.loading = false
+  }
+  image.onerror = () => {
+    walkSheetSprites.loading = false
+  }
+  image.src = WALK_SHEET_SRC
+}
+
+function drawWalkSheetMiles(ctx, x, y, direction, frame, moving) {
+  ensureWalkSheetSprites()
+  if (!walkSheetSprites.ready) return false
+
+  const frames = walkSheetSprites.frames[direction] || walkSheetSprites.frames.down
+  const sprite = frames[moving ? frame % frames.length : 0]
+  const bob = moving && (frame === 1 || frame === 3) ? -2 : 0
+  const height = 142
+  const width = (sprite.width / sprite.height) * height
+  const drawX = x - width / 2
+  const drawY = y - height + bob
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.23)'
+  ctx.beginPath()
+  ctx.ellipse(x, y + 5, width * 0.34, 10, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(sprite, drawX, drawY, width, height)
+  ctx.restore()
+
+  return true
+}
+
+function ensureCharacterSprites() {
+  if (characterSprites.ready || characterSprites.loading || typeof Image === 'undefined') return
+
+  characterSprites.loading = true
+  characterSprites.url = CHARACTER_SHEET_SRC
+
+  const image = new Image()
+  image.onload = () => {
+    characterSprites.sprites = {
+      front: createCharacterSprite(image, CHARACTER_SPRITE_BOXES.front),
+      back: createCharacterSprite(image, CHARACTER_SPRITE_BOXES.back),
+      side: createCharacterSprite(image, CHARACTER_SPRITE_BOXES.side),
+    }
+    characterSprites.ready = true
+    characterSprites.loading = false
+  }
+  image.onerror = () => {
+    characterSprites.loading = false
+  }
+  image.src = CHARACTER_SHEET_SRC
+}
+
+function drawReferenceMiles(ctx, x, y, direction, frame, moving) {
+  ensureCharacterSprites()
+  if (!characterSprites.ready) return false
+
+  const sprite = direction === 'up' ? characterSprites.sprites.back : direction === 'down' ? characterSprites.sprites.front : characterSprites.sprites.side
+  const flip = direction === 'left'
+  const bob = moving && (frame === 1 || frame === 3) ? -4 : 0
+  const stepSway = moving ? (frame === 1 ? -2 : frame === 3 ? 2 : 0) : 0
+  const height = 174
+  const naturalWidth = (sprite.width / sprite.height) * height
+  const width = Math.max(direction === 'up' ? 72 : 68, naturalWidth * 1.45)
+  const drawX = x - width / 2 + stepSway
+  const drawY = y - height + bob
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.23)'
+  ctx.beginPath()
+  ctx.ellipse(x, y + 5, width * 0.38, 10, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  if (flip) {
+    ctx.translate(drawX + width, drawY)
+    ctx.scale(-1, 1)
+    ctx.drawImage(sprite, 0, 0, width, height)
+  } else {
+    ctx.drawImage(sprite, drawX, drawY, width, height)
+  }
+  ctx.restore()
+
+  return true
+}
+
 function drawFrontMiles(ctx, originX, originY, scale, frame) {
   const bob = frame === 1 || frame === 3 ? -1 : 0
-  const leftStep = frame === 1
-  const rightStep = frame === 3
+  const leftStep = frame === 1 ? -5 : frame === 3 ? 5 : 0
+  const rightStep = -leftStep
+  const leftArm = frame === 1 ? 4 : frame === 3 ? -4 : 0
+  const rightArm = -leftArm
   const r = (x, y, w, h, c) => drawRect(ctx, originX, originY + bob * scale, scale, x, y, w, h, c)
 
-  r(15, 4, 24, 6, '#1f1a1d')
-  r(10, 9, 34, 9, '#2b2428')
-  r(8, 16, 8, 16, '#3a3035')
-  r(35, 16, 9, 16, '#3a3035')
-  r(18, 15, 8, 25, '#44383e')
-  r(30, 16, 7, 21, '#241f22')
-  r(16, 24, 24, 16, '#f0c8ab')
-  r(17, 22, 23, 8, '#f3cfb7')
-  r(17, 24, 5, 7, '#3a3035')
-  r(36, 24, 4, 8, '#241f22')
-  r(18, 30, 7, 8, '#8a929a')
-  r(32, 30, 6, 8, '#8a929a')
-  r(25, 37, 10, 4, '#edc2a2')
+  r(7, 15, 42, 26, '#050607')
+  r(10, 9, 36, 11, '#111318')
+  r(16, 3, 24, 8, '#17191f')
+  r(5, 21, 8, 15, '#15171c')
+  r(43, 20, 8, 17, '#08090b')
+  r(20, 17, 10, 20, '#08090b')
+  r(31, 17, 10, 18, '#08090b')
+  r(13, 25, 32, 21, '#ffd8bd')
+  r(14, 35, 30, 17, '#ffd0b2')
+  r(10, 32, 5, 12, '#ffb896')
+  r(44, 32, 5, 12, '#ffb896')
+  r(17, 37, 7, 5, '#ffffff')
+  r(34, 37, 7, 5, '#ffffff')
+  r(20, 39, 4, 5, '#4a2424')
+  r(34, 39, 4, 5, '#4a2424')
+  r(28, 43, 3, 2, '#e9977f')
+  r(24, 49, 11, 2, '#d7675f')
+  r(15, 46, 4, 3, '#ffaaa0')
+  r(40, 46, 4, 3, '#ffaaa0')
 
-  r(9, 39, 36, 38, '#111315')
-  r(13, 43, 12, 31, '#222629')
-  r(36, 43, 7, 29, '#090a0b')
-  r(23, 39, 15, 45, '#f3f3f3')
-  r(31, 40, 7, 43, '#dedede')
-  r(14, 55, 4, 16, '#168cff')
-  r(4, 41, 11, 42, '#151719')
-  r(1, 45, 6, 34, '#24282b')
-  r(42, 41, 12, 42, '#101112')
-  r(50, 45, 6, 34, '#060707')
-  r(6, 78, 9, 7, '#101112')
-  r(42, 78, 9, 7, '#101112')
+  r(17, 54, 26, 8, '#ffd0b2')
+  r(9, 59, 40, 44, '#1b5c93')
+  r(13, 62, 13, 39, '#2f78af')
+  r(34, 62, 11, 38, '#245f93')
+  r(18, 63, 24, 9, '#0d375d')
+  r(22, 61, 18, 49, '#ffffff')
+  r(23, 72, 15, 31, '#f2f4ff')
+  r(15, 70, 4, 27, '#0c1520')
+  r(41, 70, 4, 27, '#0c1520')
+  r(12, 84, 9, 7, '#1a4d7d')
+  r(38, 84, 8, 7, '#194a76')
 
-  r(15, 78, 13, 26, '#0f1011')
-  r(31, 78, 13, 26, '#0f1011')
-  r(18, 91, 7, 9, '#f0c8ab')
-  r(32, 97, 8, 8, '#f0c8ab')
-  if (leftStep) r(13, 100, 14, 7, '#111315')
-  if (rightStep) r(31, 100, 14, 7, '#111315')
-  r(leftStep ? 12 : 14, 103, 17, 10, '#ffffff')
-  r(leftStep ? 12 : 14, 111, 17, 6, '#d1d5d8')
-  r(rightStep ? 30 : 32, 103, 17, 10, '#ffffff')
-  r(rightStep ? 30 : 32, 111, 17, 6, '#d1d5d8')
+  r(5, 62 + leftArm, 11, 42, '#1b5c93')
+  r(3, 91 + leftArm, 10, 15, '#ffd0b2')
+  r(45, 62 + rightArm, 11, 42, '#164c79')
+  r(48, 91 + rightArm, 9, 15, '#ffd0b2')
+
+  r(17 + leftStep, 101, 14, 41, '#101215')
+  r(31 + rightStep, 101, 14, 41, '#070809')
+  r(21 + leftStep, 127, 8, 9, '#24262a')
+  r(35 + rightStep, 129, 8, 9, '#24262a')
+  r(13 + leftStep, 139, 20, 9, '#ffffff')
+  r(13 + leftStep, 146, 21, 5, '#d9dde1')
+  r(32 + rightStep, 139, 20, 9, '#ffffff')
+  r(32 + rightStep, 146, 21, 5, '#d9dde1')
+  r(17 + leftStep, 142, 12, 3, '#111318')
+  r(36 + rightStep, 142, 12, 3, '#111318')
 }
 
 function drawBackMiles(ctx, originX, originY, scale, frame) {
   const bob = frame === 1 || frame === 3 ? -1 : 0
-  const leftStep = frame === 1
-  const rightStep = frame === 3
+  const leftStep = frame === 1 ? -5 : frame === 3 ? 5 : 0
+  const rightStep = -leftStep
+  const leftArm = frame === 1 ? 4 : frame === 3 ? -4 : 0
+  const rightArm = -leftArm
   const r = (x, y, w, h, c) => drawRect(ctx, originX, originY + bob * scale, scale, x, y, w, h, c)
 
-  r(13, 5, 28, 8, '#1d181b')
-  r(9, 12, 35, 22, '#30272c')
-  r(13, 28, 29, 14, '#1c181b')
-  r(10, 18, 8, 24, '#3b3136')
-  r(36, 17, 8, 25, '#241f22')
-  r(8, 39, 38, 40, '#111315')
-  r(14, 43, 12, 32, '#23272a')
-  r(36, 43, 8, 30, '#080909')
-  r(26, 42, 8, 39, '#1b1d1f')
-  r(4, 42, 11, 42, '#151719')
-  r(42, 42, 12, 42, '#101112')
-  r(15, 79, 13, 27, '#101112')
-  r(31, 79, 13, 27, '#101112')
-  if (leftStep) r(13, 101, 14, 7, '#111315')
-  if (rightStep) r(31, 101, 14, 7, '#111315')
-  r(leftStep ? 12 : 14, 104, 17, 10, '#ffffff')
-  r(leftStep ? 12 : 14, 112, 17, 6, '#d1d5d8')
-  r(rightStep ? 30 : 32, 104, 17, 10, '#ffffff')
-  r(rightStep ? 30 : 32, 112, 17, 6, '#d1d5d8')
+  r(8, 14, 42, 28, '#050607')
+  r(13, 8, 35, 11, '#111318')
+  r(18, 3, 25, 8, '#17191f')
+  r(5, 23, 9, 17, '#15171c')
+  r(44, 22, 8, 18, '#08090b')
+  r(13, 38, 34, 17, '#050607')
+  r(11, 46, 36, 13, '#ffd0b2')
+
+  r(8, 58, 42, 51, '#1b5c93')
+  r(13, 61, 34, 20, '#2f78af')
+  r(17, 61, 26, 13, '#0d375d')
+  r(19, 74, 21, 11, '#1b5c93')
+  r(12, 89, 31, 19, '#245f93')
+  r(22, 107, 17, 4, '#ffffff')
+  r(10, 73, 4, 28, '#0c1520')
+  r(46, 73, 4, 28, '#0c1520')
+
+  r(5, 62 + leftArm, 11, 42, '#1b5c93')
+  r(4, 92 + leftArm, 9, 14, '#ffd0b2')
+  r(47, 62 + rightArm, 10, 42, '#164c79')
+  r(49, 92 + rightArm, 8, 14, '#ffd0b2')
+
+  r(17 + leftStep, 105, 14, 39, '#101215')
+  r(31 + rightStep, 105, 14, 39, '#070809')
+  r(20 + leftStep, 130, 9, 8, '#24262a')
+  r(35 + rightStep, 130, 9, 8, '#24262a')
+  r(13 + leftStep, 141, 20, 9, '#ffffff')
+  r(13 + leftStep, 148, 21, 5, '#d9dde1')
+  r(32 + rightStep, 141, 20, 9, '#ffffff')
+  r(32 + rightStep, 148, 21, 5, '#d9dde1')
+  r(17 + leftStep, 144, 12, 3, '#111318')
+  r(36 + rightStep, 144, 12, 3, '#111318')
 }
 
 function drawSideMiles(ctx, originX, originY, scale, frame, facingLeft) {
   const bob = frame === 1 || frame === 3 ? -1 : 0
-  const step = frame === 1 ? -2 : frame === 3 ? 2 : 0
+  const frontStep = frame === 1 ? 7 : frame === 3 ? -7 : 0
+  const backStep = -frontStep
+  const frontArm = frame === 1 ? -5 : frame === 3 ? 5 : 0
 
   ctx.save()
   if (facingLeft) {
-    ctx.translate(originX + 56 * scale, 0)
+    ctx.translate(originX + 62 * scale, 0)
     ctx.scale(-1, 1)
     originX = 0
   }
@@ -311,32 +690,50 @@ function drawSideMiles(ctx, originX, originY, scale, frame, facingLeft) {
     drawRect(ctx, baseX, originY + bob * scale, scale, x, y, w, h, c)
   }
 
-  sideR(13, 5, 22, 7, '#1d181b')
-  sideR(9, 12, 31, 12, '#2d2529')
-  sideR(10, 21, 13, 20, '#44383e')
-  sideR(29, 21, 10, 18, '#241f22')
-  sideR(20, 25, 20, 18, '#f0c8ab')
-  sideR(21, 24, 12, 6, '#f3cfb7')
-  sideR(30, 31, 7, 8, '#8a929a')
-  sideR(15, 39, 31, 39, '#111315')
-  sideR(20, 43, 11, 31, '#24282b')
-  sideR(31, 40, 10, 42, '#f3f3f3')
-  sideR(38, 40, 5, 42, '#dedede')
-  sideR(42, 42, 12, 43, '#101112')
-  sideR(45, 47 + (frame === 1 ? 4 : 0), 8, 32, '#060707')
-  sideR(18, 78, 13, 27, '#101112')
-  sideR(33, 78, 13, 27, '#101112')
-  sideR(16 + step, 104, 18, 10, '#ffffff')
-  sideR(16 + step, 112, 18, 6, '#d1d5d8')
-  sideR(32 - step, 104, 18, 10, '#ffffff')
-  sideR(32 - step, 112, 18, 6, '#d1d5d8')
+  sideR(9, 13, 41, 27, '#050607')
+  sideR(14, 7, 34, 11, '#111318')
+  sideR(20, 2, 23, 8, '#17191f')
+  sideR(8, 24, 9, 18, '#15171c')
+  sideR(38, 22, 9, 17, '#08090b')
+  sideR(18, 29, 30, 24, '#ffd0b2')
+  sideR(45, 36, 4, 4, '#ffd0b2')
+  sideR(15, 34, 5, 11, '#ffb896')
+  sideR(34, 40, 8, 5, '#ffffff')
+  sideR(37, 41, 4, 5, '#4a2424')
+  sideR(44, 39, 5, 3, '#ffd0b2')
+  sideR(45, 49, 4, 2, '#d7675f')
+  sideR(26, 45, 3, 3, '#ffaaa0')
+
+  sideR(18, 56, 28, 8, '#ffd0b2')
+  sideR(12, 60, 39, 48, '#1b5c93')
+  sideR(16, 63, 16, 42, '#2f78af')
+  sideR(31, 61, 12, 48, '#ffffff')
+  sideR(39, 63, 7, 44, '#f2f4ff')
+  sideR(17, 70, 4, 29, '#0c1520')
+  sideR(46, 72, 4, 31, '#0c1520')
+  sideR(14, 84, 10, 8, '#1a4d7d')
+
+  sideR(45, 62 + frontArm, 10, 42, '#164c79')
+  sideR(48, 92 + frontArm, 9, 15, '#ffd0b2')
+
+  sideR(20 + backStep, 104, 14, 39, '#101215')
+  sideR(35 + frontStep, 104, 14, 39, '#070809')
+  sideR(16 + backStep, 141 + (frame === 1 ? -2 : 0), 21, 9, '#ffffff')
+  sideR(16 + backStep, 148 + (frame === 1 ? -2 : 0), 22, 5, '#d9dde1')
+  sideR(35 + frontStep, 141 + (frame === 3 ? -2 : 0), 22, 9, '#ffffff')
+  sideR(35 + frontStep, 148 + (frame === 3 ? -2 : 0), 23, 5, '#d9dde1')
+  sideR(20 + backStep, 144, 13, 3, '#111318')
+  sideR(39 + frontStep, 144, 13, 3, '#111318')
   ctx.restore()
 }
 
 function drawVoxelMiles(ctx, x, y, direction, frame, moving) {
-  const scale = 1.35
-  const originX = x - (56 * scale) / 2
-  const originY = y - 114 * scale
+  if (USE_WALK_SHEET_CHARACTER && drawWalkSheetMiles(ctx, x, y, direction, frame, moving)) return
+  if (USE_REFERENCE_CHARACTER && drawReferenceMiles(ctx, x, y, direction, frame, moving)) return
+
+  const scale = 1.08
+  const originX = x - (62 * scale) / 2
+  const originY = y - 151 * scale
   const animationFrame = moving ? frame : 0
 
   ctx.fillStyle = 'rgba(0, 0, 0, 0.22)'
@@ -991,6 +1388,8 @@ function drawMap(ctx, canvas, player, found, pulse, playerPose) {
 
 function App() {
   const canvasRef = useRef(null)
+  const joystickRef = useRef(null)
+  const joystickThumbRef = useRef(null)
   const keysRef = useRef(new Set())
   const rafRef = useRef(0)
   const lastFrameRef = useRef(0)
@@ -1020,8 +1419,8 @@ function App() {
 
   const currentGuide = useMemo(() => {
     const target = getNearestTarget(playerView, found)
-    if (found.length === cards.length) return '全部道具已收集，前往腾讯入口完成通关。'
-    return `前往 ${target.zone}，找到 ${target.short} 道具。`
+    if (found.length === cards.length) return '个人面板已补全，前往腾讯入口提交这份自我介绍。'
+    return `前往 ${target.zone}，看看那里藏着什么线索。`
   }, [found, playerView])
 
   const inspect = useCallback(() => {
@@ -1044,7 +1443,10 @@ function App() {
           id: 'locked',
           title: '腾讯入口还未解锁',
           zone: '腾讯入口',
-          body: `还差 ${cards.length - foundRef.current.length} 个道具。跟着蓝绿引导线继续探索吧。`,
+          body: `个人面板还没有补全，目前还差 ${cards.length - foundRef.current.length} 个道具。
+
+先沿着地图继续探索吧。
+等资料收集完整之后，就可以前往腾讯入口，提交这份新手自我介绍。`,
         })
       }
     }
@@ -1065,7 +1467,11 @@ function App() {
       }
       if (['e', 'enter', ' '].includes(key)) {
         event.preventDefault()
-        inspect()
+        if (dialog) {
+          setDialog(null)
+          return
+        }
+        if (phase === 'playing' && !activePanel && !selectedPhoto) inspect()
       }
       if (key === 'p') {
         event.preventDefault()
@@ -1075,7 +1481,10 @@ function App() {
         event.preventDefault()
         togglePanel('bag')
       }
-      if (key === 'escape') setDialog(null)
+      if (key === 'escape') {
+        setDialog(null)
+        setSelectedPhoto(null)
+      }
     }
 
     const handleKeyUp = (event) => {
@@ -1088,7 +1497,7 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [inspect, togglePanel])
+  }, [activePanel, dialog, inspect, phase, selectedPhoto, togglePanel])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -1164,16 +1573,49 @@ function App() {
     })
   }, [found])
 
-  const holdDirection = (direction, isDown) => {
-    const map = {
-      up: 'arrowup',
-      down: 'arrowdown',
-      left: 'arrowleft',
-      right: 'arrowright',
-    }
-    if (isDown) keysRef.current.add(map[direction])
-    else keysRef.current.delete(map[direction])
-  }
+  const resetJoystick = useCallback(() => {
+    keysRef.current.delete('arrowup')
+    keysRef.current.delete('arrowdown')
+    keysRef.current.delete('arrowleft')
+    keysRef.current.delete('arrowright')
+    if (joystickThumbRef.current) joystickThumbRef.current.style.transform = 'translate(-50%, -50%)'
+  }, [])
+
+  const updateJoystick = useCallback((event) => {
+    const joystick = joystickRef.current
+    const thumb = joystickThumbRef.current
+    if (!joystick || !thumb) return
+
+    const rect = joystick.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+    const maxDistance = rect.width * 0.32
+    const rawX = event.clientX - centerX
+    const rawY = event.clientY - centerY
+    const distanceFromCenter = Math.hypot(rawX, rawY)
+    const scale = distanceFromCenter > maxDistance ? maxDistance / distanceFromCenter : 1
+    const x = rawX * scale
+    const y = rawY * scale
+    const deadZone = rect.width * 0.12
+
+    thumb.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`
+    keysRef.current.delete('arrowup')
+    keysRef.current.delete('arrowdown')
+    keysRef.current.delete('arrowleft')
+    keysRef.current.delete('arrowright')
+
+    if (distanceFromCenter < deadZone) return
+    if (x < -deadZone) keysRef.current.add('arrowleft')
+    if (x > deadZone) keysRef.current.add('arrowright')
+    if (y < -deadZone) keysRef.current.add('arrowup')
+    if (y > deadZone) keysRef.current.add('arrowdown')
+  }, [])
+
+  const startJoystick = useCallback((event) => {
+    event.preventDefault()
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    updateJoystick(event)
+  }, [updateJoystick])
 
   return (
     <main className="game-shell">
@@ -1230,7 +1672,7 @@ function App() {
 
         {nearby && phase === 'playing' && (
           <button type="button" className="inspect-prompt" onClick={inspect}>
-            <span>按 E</span>
+            <span>附近</span>
             查看 {nearby.title}
           </button>
         )}
@@ -1241,11 +1683,16 @@ function App() {
               <span className="tiny-label">新地图已解锁</span>
               <h1>Miles 的腾讯新地图</h1>
               <p>
-                从校园副本出发，探索城市街区，收集 {cards.length} 个道具，逐步补齐个人面板，最后打开腾讯入口。
+                {`你好，我是方明正，也可以叫我 Miles。
+
+上一站是厦门大学副本，日常任务大概是上课、做项目、赶 ddl、偶尔和 bug 反复拉扯。现在我准备进入一张新的地图：腾讯。
+
+自我介绍被做成了一个小型探索游戏。你可以在地图里收集 ${cards.length} 个道具，慢慢解锁我的个人面板。
+希望通关之后，你会对这个刚进新地图的新人多一点了解。`}
               </p>
               <div className="control-row">
-                <span>移动：WASD / 方向键</span>
-                <span>查看：E / 回车 / 空格</span>
+                <span>移动：键盘 / 手机摇杆</span>
+                <span>查看：靠近后点击提示</span>
               </div>
               <button type="button" className="primary-button" onClick={() => setPhase('playing')}>
                 开始探索
@@ -1297,6 +1744,7 @@ function App() {
                     >
                       {unlocked ? <img src={photo.photo} alt={photo.title} /> : <span>???</span>}
                       <strong>{photo.title}</strong>
+                      <p>{unlocked ? photo.body : '收集照片道具后解锁图鉴文案。'}</p>
                     </button>
                   )
                 })}
@@ -1319,7 +1767,11 @@ function App() {
                 const collected = collectedSet.has(item.id)
                 return (
                   <article key={item.id} className={collected ? 'bag-item collected' : 'bag-item'}>
-                    <div className={`bag-icon ${item.kind}`} />
+                    {collected && item.photo ? (
+                      <img className="bag-photo" src={item.photo} alt={item.title} />
+                    ) : (
+                      <div className={`bag-icon ${item.kind}`} />
+                    )}
                     <div>
                       <h3>{collected ? item.title : '未发现道具'}</h3>
                       <p>{collected ? item.body : `前往 ${item.zone} 寻找线索。`}</p>
@@ -1340,9 +1792,10 @@ function App() {
         )}
 
         {dialog && !activePanel && (
-          <div className="dialog-panel" role="dialog" aria-live="polite">
+          <div className={dialog.photo ? 'dialog-panel photo-dialog' : 'dialog-panel'} role="dialog" aria-live="polite">
             <span className="tiny-label">{dialog.zone}</span>
             <h2>{dialog.title}</h2>
+            {dialog.photo && <img className="dialog-photo" src={dialog.photo} alt={dialog.title} />}
             <p>{dialog.body}</p>
             <button type="button" onClick={() => setDialog(null)}>
               继续
@@ -1355,13 +1808,25 @@ function App() {
             <div className="final-card">
               <span className="tiny-label">通关</span>
               <h1>方明正 / Miles</h1>
-              <p>22 岁，厦门大学软件工程。 一点点外向、热心、好奇，喜欢探索。</p>
+              <p>
+                {`你好，我是方明正，也可以叫我 Miles。
+22 岁，来自厦门大学软件工程。
+
+ENFP内向型社牛；熟起来之后会更愿意聊天、开玩笑，也愿意和大家一起把事情推进。`}
+              </p>
               <div className="final-grid">
                 {collectedCards.map((card) => (
                   <span key={card.id}>{card.short}</span>
                 ))}
               </div>
-              <p>从校园副本进入腾讯新地图，希望认识大家，也期待一起打配合。</p>
+              <p>
+                {`平时喜欢玩王者荣耀、第五人格和崩坏：星穹铁道，也喜欢看电影、运动。
+如果你也打游戏、看电影，或者刚好想找人一起活动一下，欢迎随时叫我。`}
+              </p>
+              <p>
+                {`现在我已经抵达腾讯新地图。
+接下来希望能尽快熟悉这里的节奏，也期待认识大家，和大家一起学习、协作、组队通关新的任务。`}
+              </p>
               <button
                 type="button"
                 className="primary-button"
@@ -1379,22 +1844,19 @@ function App() {
 
         {phase === 'playing' && (
         <div className="mobile-controls" aria-label="Mobile controls">
-          <div className="dpad">
-            {['up', 'left', 'right', 'down'].map((direction) => (
-              <button
-                key={direction}
-                type="button"
-                className={direction}
-                aria-label={`Move ${direction}`}
-                onPointerDown={() => holdDirection(direction, true)}
-                onPointerUp={() => holdDirection(direction, false)}
-                onPointerLeave={() => holdDirection(direction, false)}
-              />
-            ))}
+          <div
+            ref={joystickRef}
+            className="joystick"
+            role="application"
+            aria-label="移动摇杆"
+            onPointerDown={startJoystick}
+            onPointerMove={updateJoystick}
+            onPointerUp={resetJoystick}
+            onPointerCancel={resetJoystick}
+            onPointerLeave={resetJoystick}
+          >
+            <span ref={joystickThumbRef} className="joystick-thumb" />
           </div>
-          <button type="button" className="inspect-button" onClick={inspect}>
-            查看
-          </button>
         </div>
         )}
       </section>
