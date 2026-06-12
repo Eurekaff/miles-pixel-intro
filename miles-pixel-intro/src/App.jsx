@@ -534,12 +534,15 @@ function ensureWalkSheetSprites() {
   preloadWalkSheetSprites().catch(() => {})
 }
 
+function preloadPhotoAssets() {
+  Object.values(PHOTO_ASSETS).forEach((src) => {
+    loadImageAsset(src).catch(() => {})
+  })
+}
+
 function preloadGameAssets(onProgress) {
   const assets = [
     { label: '角色行走帧', load: preloadWalkSheetSprites },
-    { label: '书房照片', load: () => loadImageAsset(PHOTO_ASSETS.library) },
-    { label: '电影感照片', load: () => loadImageAsset(PHOTO_ASSETS.casino) },
-    { label: '冬日近照', load: () => loadImageAsset(PHOTO_ASSETS.winter) },
   ]
 
   return assets.reduce(
@@ -1467,7 +1470,7 @@ function App() {
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [loadingProgress, setLoadingProgress] = useState({
     loaded: 0,
-    total: 4,
+    total: 1,
     label: '连接腾讯新地图',
     failed: false,
   })
@@ -1484,14 +1487,15 @@ function App() {
       .then(() => {
         if (!cancelled) {
           setLoadingProgress({
-            loaded: 4,
-            total: 4,
+            loaded: 1,
+            total: 1,
             label: '资源加载完成',
             failed: false,
           })
           window.setTimeout(() => {
             if (!cancelled) setPhase('start')
           }, 280)
+          preloadPhotoAssets()
         }
       })
       .catch(() => {
@@ -1724,7 +1728,7 @@ function App() {
   const retryLoading = useCallback(() => {
     setLoadingProgress({
       loaded: 0,
-      total: 4,
+      total: 1,
       label: '重新连接腾讯新地图',
       failed: false,
     })
