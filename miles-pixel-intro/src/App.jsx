@@ -16,7 +16,9 @@ const PLAYER = {
 const publicAsset = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
 const versionedPublicAsset = (path, version) => `${publicAsset(path)}?v=${version}`
 
-const WALK_SHEET_SRC = versionedPublicAsset('/character/miles-walk-sheet.png', '20260612-walk-sheet-768')
+const WALK_SHEET_WEBP_SRC = versionedPublicAsset('/character/miles-walk-sheet.webp', '20260613-walk-sheet-webp')
+const WALK_SHEET_PNG_SRC = versionedPublicAsset('/character/miles-walk-sheet.png', '20260612-walk-sheet-768')
+const WALK_SHEET_SOURCES = [WALK_SHEET_WEBP_SRC, WALK_SHEET_PNG_SRC]
 const USE_WALK_SHEET_CHARACTER = true
 const CHARACTER_SHEET_SRC = versionedPublicAsset('/character/miles-reference.png', '20260612-reference-2')
 const PHOTO_ASSETS = {
@@ -490,6 +492,13 @@ function loadImageAsset(src) {
   })
 }
 
+function loadFirstAvailableImageAsset(sources) {
+  return sources.reduce(
+    (chain, src) => chain.catch(() => loadImageAsset(src)),
+    Promise.reject(new Error('No image sources attempted')),
+  )
+}
+
 function buildWalkSheetSprites(image) {
   const directions = ['down', 'up', 'left', 'right']
   return directions.reduce((frames, direction, row) => {
@@ -500,7 +509,7 @@ function buildWalkSheetSprites(image) {
   }, {})
 }
 
-function preloadWalkSheetSprites() {
+function preloadWalkSheetSprites(onProgress) {
   if (walkSheetSprites.ready) return Promise.resolve()
   if (walkSheetSprites.loading && walkSheetSprites.promise) return walkSheetSprites.promise
   if (walkSheetSprites.failed) {
@@ -509,10 +518,31 @@ function preloadWalkSheetSprites() {
   }
 
   walkSheetSprites.loading = true
-  walkSheetSprites.url = WALK_SHEET_SRC
-  walkSheetSprites.promise = loadImageAsset(WALK_SHEET_SRC)
+  walkSheetSprites.url = WALK_SHEET_WEBP_SRC
+  onProgress?.({
+    loaded: 0,
+    total: 4,
+    percent: 8,
+    label: '连接角色素材',
+    failed: false,
+  })
+  walkSheetSprites.promise = loadFirstAvailableImageAsset(WALK_SHEET_SOURCES)
     .then((image) => {
+      onProgress?.({
+        loaded: 1,
+        total: 4,
+        percent: 55,
+        label: '解析角色贴图',
+        failed: false,
+      })
       walkSheetSprites.frames = buildWalkSheetSprites(image)
+      onProgress?.({
+        loaded: 3,
+        total: 4,
+        percent: 88,
+        label: '整理行走动画',
+        failed: false,
+      })
       walkSheetSprites.ready = true
       walkSheetSprites.failed = false
     })
@@ -541,19 +571,7 @@ function preloadPhotoAssets() {
 }
 
 function preloadGameAssets(onProgress) {
-  const assets = [
-    { label: '角色行走帧', load: preloadWalkSheetSprites },
-  ]
-
-  return assets.reduce(
-    (chain, asset, index) => chain.then(() => {
-      onProgress?.({ loaded: index, total: assets.length, label: asset.label, failed: false })
-      return asset.load().then(() => {
-        onProgress?.({ loaded: index + 1, total: assets.length, label: asset.label, failed: false })
-      })
-    }),
-    Promise.resolve(),
-  )
+  return preloadWalkSheetSprites(onProgress)
 }
 
 function ensureCharacterSprites() {
@@ -1470,7 +1488,8 @@ function App() {
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [loadingProgress, setLoadingProgress] = useState({
     loaded: 0,
-    total: 1,
+    total: 4,
+    percent: 0,
     label: '连接腾讯新地图',
     failed: false,
   })
@@ -1487,8 +1506,9 @@ function App() {
       .then(() => {
         if (!cancelled) {
           setLoadingProgress({
-            loaded: 1,
-            total: 1,
+            loaded: 4,
+            total: 4,
+            percent: 100,
             label: '资源加载完成',
             failed: false,
           })
@@ -1728,14 +1748,17 @@ function App() {
   const retryLoading = useCallback(() => {
     setLoadingProgress({
       loaded: 0,
-      total: 1,
+      total: 4,
+      percent: 0,
       label: '重新连接腾讯新地图',
       failed: false,
     })
     setLoadAttempt((current) => current + 1)
   }, [])
 
-  const loadingPercent = Math.round((loadingProgress.loaded / Math.max(loadingProgress.total, 1)) * 100)
+  const loadingPercent = Math.round(
+    loadingProgress.percent ?? (loadingProgress.loaded / Math.max(loadingProgress.total, 1)) * 100,
+  )
 
   return (
     <main className="game-shell">

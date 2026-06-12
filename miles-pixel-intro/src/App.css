@@ -689,7 +689,7 @@
     linear-gradient(90deg, #f6d74a 0 12px, #2ee6a6 12px 24px);
   background-size: 24px 100%;
   box-shadow: 0 0 14px rgba(46, 230, 166, 0.42);
-  transition: width 220ms steps(4, end);
+  transition: width 260ms linear;
 }
 
 .loading-steps {
