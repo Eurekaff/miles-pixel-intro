@@ -19,6 +19,11 @@ const versionedPublicAsset = (path, version) => `${publicAsset(path)}?v=${versio
 const WALK_SHEET_SRC = versionedPublicAsset('/character/miles-walk-sheet.png', '20260612-walk-sheet-2')
 const USE_WALK_SHEET_CHARACTER = true
 const CHARACTER_SHEET_SRC = versionedPublicAsset('/character/miles-reference.png', '20260612-reference-2')
+const PHOTO_ASSETS = {
+  library: publicAsset('/photos/library.jpg'),
+  casino: publicAsset('/photos/casino.jpg'),
+  winter: publicAsset('/photos/winter.jpg'),
+}
 const CHARACTER_SPRITE_BOXES = {
   front: { x: 60, y: 220, width: 510, height: 1655 },
   back: { x: 585, y: 220, width: 475, height: 1655 },
@@ -37,6 +42,7 @@ const walkSheetSprites = {
   loading: false,
   ready: false,
   failed: false,
+  promise: null,
   url: '',
   frames: null,
 }
@@ -184,7 +190,7 @@ const collectibles = [
     x: 310,
     y: 1060,
     kind: 'photo',
-    photo: publicAsset('/photos/library.jpg'),
+    photo: PHOTO_ASSETS.library,
     unlocks: ['photo-library'],
     body: `获得道具：书房照片。
 
@@ -203,7 +209,7 @@ const collectibles = [
     x: 430,
     y: 1060,
     kind: 'photo',
-    photo: publicAsset('/photos/casino.jpg'),
+    photo: PHOTO_ASSETS.casino,
     unlocks: ['photo-casino'],
     body: `获得道具：电影感照片。
 
@@ -222,7 +228,7 @@ const collectibles = [
     x: 550,
     y: 1060,
     kind: 'photo',
-    photo: publicAsset('/photos/winter.jpg'),
+    photo: PHOTO_ASSETS.winter,
     unlocks: ['photo-winter'],
     body: `获得道具：冬日近照。
 
@@ -471,30 +477,102 @@ function stabilizeWalkFrames(frames, padding = 12) {
   })
 }
 
-function ensureWalkSheetSprites() {
-  if (walkSheetSprites.ready || walkSheetSprites.loading || walkSheetSprites.failed || typeof Image === 'undefined') return
+function loadImageAsset(src) {
+  return new Promise((resolve, reject) => {
+    if (typeof Image === 'undefined') {
+      reject(new Error(`Image API is unavailable for ${src}`))
+      return
+    }
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error(`Failed to load ${src}`))
+    image.src = src
+  })
+}
+
+function buildWalkSheetSprites(image) {
+  const directions = ['down', 'up', 'left', 'right']
+  return directions.reduce((frames, direction, row) => {
+    frames[direction] = stabilizeWalkFrames(
+      Array.from({ length: 4 }, (_, column) => createWalkFrame(image, row, column)),
+    )
+    return frames
+  }, {})
+}
+
+function preloadWalkSheetSprites() {
+  if (walkSheetSprites.ready) return Promise.resolve()
+  if (walkSheetSprites.loading && walkSheetSprites.promise) return walkSheetSprites.promise
+  if (walkSheetSprites.failed) {
+    walkSheetSprites.failed = false
+    walkSheetSprites.promise = null
+  }
 
   walkSheetSprites.loading = true
-  walkSheetSprites.failed = false
   walkSheetSprites.url = WALK_SHEET_SRC
+  walkSheetSprites.promise = loadImageAsset(WALK_SHEET_SRC)
+    .then((image) => {
+      walkSheetSprites.frames = buildWalkSheetSprites(image)
+      walkSheetSprites.ready = true
+      walkSheetSprites.failed = false
+    })
+    .catch((error) => {
+      walkSheetSprites.ready = false
+      walkSheetSprites.failed = true
+      walkSheetSprites.promise = null
+      throw error
+    })
+    .finally(() => {
+      walkSheetSprites.loading = false
+    })
+
+  return walkSheetSprites.promise
+}
+
+function ensureWalkSheetSprites() {
+  if (walkSheetSprites.ready || walkSheetSprites.loading || walkSheetSprites.failed) return
+  preloadWalkSheetSprites().catch(() => {})
+}
+
+function preloadGameAssets(onProgress) {
+  const assets = [
+    { label: '角色行走帧', load: preloadWalkSheetSprites },
+    { label: '书房照片', load: () => loadImageAsset(PHOTO_ASSETS.library) },
+    { label: '电影感照片', load: () => loadImageAsset(PHOTO_ASSETS.casino) },
+    { label: '冬日近照', load: () => loadImageAsset(PHOTO_ASSETS.winter) },
+  ]
+
+  return assets.reduce(
+    (chain, asset, index) => chain.then(() => {
+      onProgress?.({ loaded: index, total: assets.length, label: asset.label, failed: false })
+      return asset.load().then(() => {
+        onProgress?.({ loaded: index + 1, total: assets.length, label: asset.label, failed: false })
+      })
+    }),
+    Promise.resolve(),
+  )
+}
+
+function ensureCharacterSprites() {
+  if (characterSprites.ready || characterSprites.loading || typeof Image === 'undefined') return
+
+  characterSprites.loading = true
+  characterSprites.url = CHARACTER_SHEET_SRC
 
   const image = new Image()
   image.onload = () => {
-    const directions = ['down', 'up', 'left', 'right']
-    walkSheetSprites.frames = directions.reduce((frames, direction, row) => {
-      frames[direction] = stabilizeWalkFrames(
-        Array.from({ length: 4 }, (_, column) => createWalkFrame(image, row, column)),
-      )
-      return frames
-    }, {})
-    walkSheetSprites.ready = true
-    walkSheetSprites.loading = false
+    characterSprites.sprites = {
+      front: createCharacterSprite(image, CHARACTER_SPRITE_BOXES.front),
+      back: createCharacterSprite(image, CHARACTER_SPRITE_BOXES.back),
+      side: createCharacterSprite(image, CHARACTER_SPRITE_BOXES.side),
+    }
+    characterSprites.ready = true
+    characterSprites.loading = false
   }
   image.onerror = () => {
-    walkSheetSprites.loading = false
-    walkSheetSprites.failed = true
+    characterSprites.loading = false
   }
-  image.src = WALK_SHEET_SRC
+  image.src = CHARACTER_SHEET_SRC
 }
 
 function drawWalkSheetMiles(ctx, x, y, direction, frame, moving) {
@@ -520,28 +598,6 @@ function drawWalkSheetMiles(ctx, x, y, direction, frame, moving) {
   ctx.restore()
 
   return true
-}
-
-function ensureCharacterSprites() {
-  if (characterSprites.ready || characterSprites.loading || typeof Image === 'undefined') return
-
-  characterSprites.loading = true
-  characterSprites.url = CHARACTER_SHEET_SRC
-
-  const image = new Image()
-  image.onload = () => {
-    characterSprites.sprites = {
-      front: createCharacterSprite(image, CHARACTER_SPRITE_BOXES.front),
-      back: createCharacterSprite(image, CHARACTER_SPRITE_BOXES.back),
-      side: createCharacterSprite(image, CHARACTER_SPRITE_BOXES.side),
-    }
-    characterSprites.ready = true
-    characterSprites.loading = false
-  }
-  image.onerror = () => {
-    characterSprites.loading = false
-  }
-  image.src = CHARACTER_SHEET_SRC
 }
 
 function drawReferenceMiles(ctx, x, y, direction, frame, moving) {
@@ -734,7 +790,7 @@ function drawSideMiles(ctx, originX, originY, scale, frame, facingLeft) {
 function drawVoxelMiles(ctx, x, y, direction, frame, moving) {
   if (USE_WALK_SHEET_CHARACTER) {
     if (drawWalkSheetMiles(ctx, x, y, direction, frame, moving)) return
-    if (walkSheetSprites.loading && !walkSheetSprites.failed) return
+    return
   }
   if (USE_REFERENCE_CHARACTER && drawReferenceMiles(ctx, x, y, direction, frame, moving)) return
 
@@ -1407,10 +1463,51 @@ function App() {
   const [found, setFound] = useState([])
   const foundRef = useRef(found)
   const [dialog, setDialog] = useState(null)
-  const [phase, setPhase] = useState('start')
+  const [phase, setPhase] = useState('loading')
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  const [loadingProgress, setLoadingProgress] = useState({
+    loaded: 0,
+    total: 4,
+    label: '连接腾讯新地图',
+    failed: false,
+  })
   const [nearby, setNearby] = useState(null)
   const [activePanel, setActivePanel] = useState(null)
   const [selectedPhoto, setSelectedPhoto] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    preloadGameAssets((progress) => {
+      if (!cancelled) setLoadingProgress(progress)
+    })
+      .then(() => {
+        if (!cancelled) {
+          setLoadingProgress({
+            loaded: 4,
+            total: 4,
+            label: '资源加载完成',
+            failed: false,
+          })
+          window.setTimeout(() => {
+            if (!cancelled) setPhase('start')
+          }, 280)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadingProgress((current) => ({
+            ...current,
+            failed: true,
+            label: '资源加载失败',
+          }))
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [loadAttempt])
 
   useEffect(() => {
     foundRef.current = found
@@ -1624,10 +1721,56 @@ function App() {
     updateJoystick(event)
   }, [updateJoystick])
 
+  const retryLoading = useCallback(() => {
+    setLoadingProgress({
+      loaded: 0,
+      total: 4,
+      label: '重新连接腾讯新地图',
+      failed: false,
+    })
+    setLoadAttempt((current) => current + 1)
+  }, [])
+
+  const loadingPercent = Math.round((loadingProgress.loaded / Math.max(loadingProgress.total, 1)) * 100)
+
   return (
     <main className="game-shell">
       <section className="game-stage" aria-label="Miles pixel introduction game">
         <canvas ref={canvasRef} className="game-canvas" aria-hidden="true" />
+
+        {phase === 'loading' && (
+          <div className="overlay loading-overlay">
+            <div className="loading-card" role="status" aria-live="polite">
+              <span className="tiny-label">资源装载中</span>
+              <h1>进入腾讯新地图</h1>
+              <div className="loading-avatar" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="loading-meta">
+                <strong>{loadingProgress.label}</strong>
+                <span>{loadingPercent}%</span>
+              </div>
+              <div className="loading-bar" aria-hidden="true">
+                <span style={{ width: `${loadingPercent}%` }} />
+              </div>
+              <div className="loading-steps" aria-hidden="true">
+                {Array.from({ length: loadingProgress.total }, (_, index) => (
+                  <span
+                    key={index}
+                    className={index < loadingProgress.loaded ? 'loaded' : ''}
+                  />
+                ))}
+              </div>
+              {loadingProgress.failed && (
+                <button type="button" className="primary-button" onClick={retryLoading}>
+                  重新加载
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="top-hud">
           <div className="brand-panel">
